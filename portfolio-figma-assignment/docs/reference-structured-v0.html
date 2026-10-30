@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ethan Li — Portfolio</title>
+<style>
+  :root {
+    --bg: #F6F4ED;
+    --card: #FEFCF9;
+    --ink: #1A1714;
+    --ink-2: #403B36;
+    --muted: #786E63;
+    --line: #C9BFB0;
+    --accent: #990F0E;
+    --accent-dark: #7A140F;
+    --cream: #E5DECF;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Inter, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  img { display: block; max-width: 100%; }
+
+  .wrap { max-width: 1440px; margin: 0 auto; padding: 0 72px; }
+
+  /* ---------- Header ---------- */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  .header-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 22px 72px;
+  }
+  .logo { color: var(--ink); font-size: 20px; font-weight: 600; text-decoration: none; }
+  .logo-sub { color: var(--muted); font-size: 9px; font-weight: 500; letter-spacing: 2px; margin-top: 2px; }
+  nav { display: flex; gap: 40px; }
+  nav a {
+    color: var(--muted); font-size: 9px; font-weight: 500;
+    letter-spacing: 1.4px; text-decoration: none; text-transform: uppercase;
+  }
+  nav a:hover { color: var(--accent); }
+
+  /* ---------- Shared ---------- */
+  .eyebrow {
+    color: var(--accent); font-size: 10px; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase;
+  }
+  .rule { border: none; border-top: 1px solid var(--line); }
+  .project-img {
+    background: var(--cream); border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-2); font-size: 13px; font-weight: 600;
+    letter-spacing: 1px; text-align: center;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 130px 0 90px; position: relative; }
+  .hero-grid {
+    display: grid; grid-template-columns: 1fr 430px;
+    gap: 80px; align-items: start;
+  }
+  .hero h1 {
+    font-size: 58px; font-weight: 700; letter-spacing: 1.6px;
+    margin-bottom: 24px;
+  }
+  .hero .tagline {
+    color: var(--ink-2); font-size: 22px; font-weight: 500;
+    line-height: 36px; letter-spacing: 1.2px; margin-bottom: 20px;
+  }
+  .hero .sub {
+    color: var(--muted); font-size: 16px; font-weight: 400;
+    line-height: 26px; letter-spacing: 1.1px; max-width: 560px;
+  }
+  .scroll-hint {
+    margin-top: 80px; color: var(--accent); font-size: 12px;
+    font-weight: 500; letter-spacing: 1.8px; text-transform: uppercase;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .scroll-hint::after {
+    content: ""; width: 1px; height: 90px; background: var(--line); display: block;
+  }
+  .hero-card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 24px; padding: 70px 40px 60px; text-align: center;
+  }
+  .hero-card img {
+    width: 265px; height: 258px; border-radius: 9999px;
+    object-fit: cover; margin: 0 auto 42px;
+  }
+  .hero-card .name { color: var(--ink-2); font-size: 18px; font-weight: 600; }
+  .hero-card .role { color: var(--ink-2); font-size: 12px; font-weight: 400; margin-top: 12px; }
+  .hero-watermark {
+    margin-top: 70px; color: var(--cream); font-size: 150px;
+    font-weight: 700; line-height: 1; user-select: none;
+  }
+
+  /* ---------- About ---------- */
+  .about { padding: 110px 0 90px; }
+  .about-grid {
+    display: grid; grid-template-columns: 1fr 552px;
+    gap: 80px; align-items: start;
+  }
+  .about h2 {
+    font-size: 64px; font-weight: 700; line-height: 76px;
+    letter-spacing: 1px; margin: 22px 0 0;
+  }
+  .about .bar {
+    width: 160px; height: 3px; border-radius: 2px;
+    background: var(--accent-dark); margin: 44px 0;
+  }
+  .about p {
+    color: var(--ink-2); font-size: 16px; line-height: 26px; max-width: 590px;
+  }
+  .interests { display: flex; gap: 56px; margin-top: 90px; }
+  .interests span {
+    color: var(--accent); font-size: 10px; font-weight: 600;
+    letter-spacing: 1.3px; text-transform: uppercase;
+  }
+  .about img {
+    border-radius: 22px; object-fit: cover; width: 100%; height: 437px;
+  }
+
+  /* ---------- Projects ---------- */
+  .project { padding: 110px 0 80px; }
+  .project h2 {
+    font-size: 72px; font-weight: 700; letter-spacing: 1px;
+    margin: 20px 0 18px;
+  }
+  .project .meta {
+    color: var(--muted); font-size: 13px; font-weight: 500;
+    letter-spacing: 1px; margin-bottom: 26px;
+  }
+  .project .intro {
+    color: var(--ink-2); font-size: 16px; line-height: 26px; max-width: 560px;
+  }
+  .project-layout {
+    display: grid; grid-template-columns: 1fr 586px;
+    gap: 80px; align-items: start;
+  }
+  .project-layout .side-img {
+    width: 100%; height: 880px; border-radius: 18px; object-fit: cover;
+  }
+  .project-layout .big-img {
+    grid-column: 2; grid-row: 1 / span 2;
+    width: 650px; height: 560px; border-radius: 18px;
+  }
+  .facts {
+    display: grid; grid-template-columns: repeat(3, 330px);
+    gap: 60px; margin-top: 100px;
+  }
+  .facts h3 { font-size: 16px; font-weight: 600; margin-bottom: 18px; }
+  .facts p { color: var(--muted); font-size: 13px; line-height: 21px; }
+  .section-divider { border: none; border-top: 2px solid var(--accent); margin: 60px 0 0; }
+
+  /* ---------- Footer ---------- */
+  footer { padding: 60px 0 70px; }
+  .footer-row {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    margin-top: 24px;
+  }
+  .footer-row .left small,
+  .footer-row .right small {
+    color: var(--ink-2); font-size: 9px; font-weight: 500; letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .footer-desc {
+    color: var(--ink-2); font-size: 14px; margin-top: 14px;
+  }
+  .footer-next {
+    color: var(--ink-2); font-size: 9px; font-weight: 600;
+    letter-spacing: 1.2px; text-transform: uppercase; margin-top: 14px;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 1100px) {
+    .wrap { padding: 0 32px; }
+    .header-inner { padding: 20px 32px; }
+    .hero-grid, .about-grid, .project-layout { grid-template-columns: 1fr; gap: 48px; }
+    .hero h1 { font-size: 44px; }
+    .about h2, .project h2 { font-size: 44px; line-height: 52px; }
+    .hero-watermark { font-size: 90px; }
+    .project-layout .big-img { grid-column: 1; grid-row: auto; width: 100%; }
+    .facts { grid-template-columns: 1fr; gap: 40px; }
+  }
+</style>
+</head>
+<body>
+
+<header id="home">
+  <div class="header-inner">
+    <a class="logo" href="#home">ETHAN LI<span class="logo-sub">PORTFOLIO</span></a>
+    <nav>
+      <a href="#home">Home</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <h1>Hello, I&rsquo;m Ethan.</h1>
+        <p class="tagline">Grade 9 student, figure skater, and creative learner.</p>
+        <p class="sub">I enjoy learning through practice and creating projects that let me explore new ideas.</p>
+        <div class="scroll-hint">Scroll down to explore my work</div>
+      </div>
+      <aside class="hero-card">
+        <img src="https://placehold.co/265x258" alt="Portrait of Ethan Li" />
+        <div class="name">ETHAN LI</div>
+        <div class="role">Student &middot; Creator &middot; Learner</div>
+      </aside>
+    </div>
+    <div class="hero-watermark">EL</div>
+  </div>
+</section>
+
+<!-- ============ ABOUT ============ -->
+<section class="about" id="about">
+  <div class="wrap">
+    <div class="eyebrow">About</div>
+    <div class="about-grid">
+      <div>
+        <h2>LEARN BY DOING.<br />GROW THROUGH PRACTICE.</h2>
+        <div class="bar"></div>
+        <p>I&rsquo;m Ethan Li, a Grade 9 student who enjoys figure skating, video games, and creative projects. I learn best by doing, practicing, and improving over time.</p>
+        <div class="interests">
+          <span>Figure Skating</span>
+          <span>Video Games</span>
+          <span>Creative Projects</span>
+        </div>
+      </div>
+      <img src="https://placehold.co/552x437" alt="About Ethan" />
+    </div>
+  </div>
+</section>
+
+<!-- ============ PROJECT 01 ============ -->
+<section class="project" id="project-1">
+  <div class="wrap">
+    <div class="eyebrow">Project 01</div>
+    <h2>Figure Skating Journey</h2>
+    <div class="meta">2018&ndash;2026 &middot; Learner</div>
+    <div class="project-layout">
+      <div>
+        <p class="intro">I chose this project because figure skating has been part of my life for several years. It represents patience, focus, and the kind of progress that only comes from repeating, correcting, and trying again.</p>
+        <div class="facts" style="grid-template-columns: 1fr; gap: 48px; margin-top: 110px;">
+          <div>
+            <h3>What I Took Away</h3>
+            <p>The outcome is more than a skating skill. I became more patient and persistent, and I learned to see improvement as something built over time.</p>
+          </div>
+          <div>
+            <h3>The Process</h3>
+            <p>My training is built around regular practice, repetition, and correction. Some skills improve quickly, while others take much longer to become stable.</p>
+          </div>
+          <div>
+            <h3>What Stands Out</h3>
+            <p>The most important part of this project is the change over time. Photos, practice moments, and visible improvement help show that progress.</p>
+          </div>
+        </div>
+      </div>
+      <img class="side-img" src="https://placehold.co/586x880" alt="Figure skating" />
+    </div>
+    <hr class="section-divider" />
+  </div>
+</section>
+
+<!-- ============ PROJECT 02 ============ -->
+<section class="project" id="project-2">
+  <div class="wrap">
+    <div class="eyebrow">Project 02</div>
+    <h2>Stop Motion Animation</h2>
+    <div class="meta">2025 &middot; Film Editor</div>
+    <p class="intro">This Science PA turned a simple idea into a complete short animation. We built the setting ourselves, used dolls as characters, and photographed the scene step by step before editing everything together.</p>
+    <div class="project-layout" style="margin-top: 60px;">
+      <div class="project-img big-img" style="grid-row: 1;">STOP MOTION PROJECT IMAGE</div>
+    </div>
+    <div class="facts">
+      <div>
+        <h3>My Role</h3>
+        <p>I focused on editing the film and helping turn many individual images into a smooth sequence that made sense as one complete animation.</p>
+      </div>
+      <div>
+        <h3>The Best Part</h3>
+        <p>The handmade sets, characters, and editing process are the parts worth seeing because they show how much planning happens behind a very short finished video.</p>
+      </div>
+      <div>
+        <h3>The Result</h3>
+        <p>The final film brought our ideas together and showed me how much patience, teamwork, and attention to detail are needed to make animation work.</p>
+      </div>
+    </div>
+    <hr class="section-divider" />
+  </div>
+</section>
+
+<!-- ============ PROJECT 03 ============ -->
+<section class="project" id="project-3">
+  <div class="wrap">
+    <div class="eyebrow">Project 03</div>
+    <h2>Laser Cutting</h2>
+    <div class="meta">Project</div>
+    <p class="intro">Add a concise introduction here that explains what the Laser Cutting project was and why it matters to you.</p>
+    <div class="project-layout" style="margin-top: 60px;">
+      <div class="project-img big-img" style="grid-row: 1;">LASER PROJECT IMAGE</div>
+    </div>
+    <div class="facts">
+      <div>
+        <h3>Your Role</h3>
+        <p>Add what you personally worked on and the main part of the process you were responsible for.</p>
+      </div>
+      <div>
+        <h3>What to Notice</h3>
+        <p>Add the strongest visual, experiment, prototype, or detail that helps visitors understand why the project is interesting.</p>
+      </div>
+      <div>
+        <h3>What It Led To</h3>
+        <p>Add the final result and what you learned or improved through the project.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer id="contact">
+  <div class="wrap">
+    <hr class="rule" />
+    <div class="footer-row">
+      <div class="left">
+        <small>Ethan Li &middot; Grade 9 Portfolio</small>
+        <div class="footer-desc">A portfolio about practice, progress, and making things.</div>
+      </div>
+      <div class="right" style="text-align: right;">
+        <small>2026</small>
+        <div class="footer-next">Next &middot; Figure Skating Journey &darr;</div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
