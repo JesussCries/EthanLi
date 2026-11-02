@@ -3,39 +3,67 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Ethan Li — Portfolio</title>
+<title>Ethan Li — Portfolio 2026</title>
+<meta name="description" content="Portfolio of Ethan Li — Grade 9 student, figure skater and creative learner. Projects about practice, progress, and making things." />
+<meta name="theme-color" content="#0A0505" />
+<meta name="color-scheme" content="dark" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%230A0505'/%3E%3Ctext%20x='16'%20y='22'%20font-family='Arial'%20font-size='14'%20font-weight='700'%20text-anchor='middle'%20fill='%23FF6A5C'%3EEL%3C/text%3E%3C/svg%3E" />
 <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
+<div id="loader" aria-hidden="true">
+  <div class="loader-name">ETHAN&nbsp;LI</div>
+  <div class="loader-bar"><i></i></div>
+</div>
+
+<canvas id="particles" aria-hidden="true"></canvas>
+<div id="spotlight" aria-hidden="true"></div>
+<div id="grain" aria-hidden="true"></div>
+<div id="progress" aria-hidden="true"></div>
+<div id="cur-dot" aria-hidden="true"></div>
+<div id="cur-ring" aria-hidden="true"></div>
+
+<a class="skip-link" href="#about">Skip to content</a>
+
 <header id="home">
   <div class="header-inner">
     <a class="logo" href="#home">ETHAN LI<span class="logo-sub">PORTFOLIO</span></a>
-    <nav>
+    <nav aria-label="Main">
       <a href="#home">Home</a>
       <a href="#about">About</a>
+      <a href="help.html" class="nav-cta">I can help</a>
       <a href="#contact">Contact</a>
     </nav>
   </div>
 </header>
 
-<!-- ============ HERO ============ -->
+<!-- ============ HERO（参考图版：暗底 + 巨幅标题 + 人物抠像叠压） ============ -->
 <section class="hero">
-  <div class="wrap">
+  <div class="hero-stage">
+    <div class="title-wrap">
+      <div class="display-name" aria-hidden="true">ETHAN&nbsp;LI</div>
+    </div>
+    <img class="hero-cutout" src="images/skater-cutout.png" alt="" fetchpriority="high" />
+  </div>
+  <div class="wrap hero-copy">
     <div class="hero-grid">
       <div>
         <h1>Hello, I&rsquo;m Ethan.</h1>
         <p class="tagline">Grade 9 student, figure skater, and creative learner.</p>
         <p class="sub">I enjoy learning through practice and creating projects that let me explore new ideas.</p>
+        <a class="hero-cta" href="help.html">I can help you with <span aria-hidden="true">&rarr;</span></a>
         <div class="scroll-hint">Scroll down to explore my work</div>
       </div>
       <aside class="hero-card">
-        <img src="images/portrait.png" alt="Portrait of Ethan Li" />
+        <div class="avatar-ring"><img src="images/portrait.png" alt="Portrait of Ethan Li" width="336" height="336" decoding="async" /></div>
         <div class="name">ETHAN LI</div>
         <div class="role">Student &middot; Creator &middot; Learner</div>
       </aside>
     </div>
-    <div class="hero-watermark">EL</div>
     <div class="hero-foot">
       <hr class="rule" />
       <span>Portfolio / 2026</span>
@@ -43,13 +71,25 @@
   </div>
 </section>
 
+<!-- ============ 跑马灯装饰带（纯装饰） ============ -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>Figure Skating</span><i>✦</i><span class="ghost-txt">Video Games</span><i>✦</i>
+    <span>Creative Projects</span><i>✦</i><span class="ghost-txt">Learn by Doing</span><i>✦</i>
+    <span>Practice</span><i>✦</i><span class="ghost-txt">Progress</span><i>✦</i>
+    <span>Figure Skating</span><i>✦</i><span class="ghost-txt">Video Games</span><i>✦</i>
+    <span>Creative Projects</span><i>✦</i><span class="ghost-txt">Learn by Doing</span><i>✦</i>
+    <span>Practice</span><i>✦</i><span class="ghost-txt">Progress</span><i>✦</i>
+  </div>
+</div>
+
 <!-- ============ ABOUT ============ -->
-<section class="about" id="about">
+<section class="about" id="about" aria-labelledby="about-title">
   <div class="wrap">
     <div class="eyebrow">About</div>
     <div class="about-grid">
       <div>
-        <h2>LEARN BY DOING.<br />GROW THROUGH PRACTICE.</h2>
+        <h2 id="about-title">LEARN BY DOING.<br />GROW THROUGH PRACTICE.</h2>
         <div class="bar"></div>
         <p>I&rsquo;m Ethan Li, a Grade 9 student who enjoys figure skating, video games, and creative projects. I learn best by doing, practicing, and improving over time.</p>
         <div class="interests">
@@ -58,21 +98,22 @@
           <span>Creative Projects</span>
         </div>
       </div>
-      <img src="images/about.png" alt="About Ethan" />
+      <img src="images/about.png" alt="About Ethan" loading="lazy" decoding="async" />
     </div>
   </div>
 </section>
 
 <!-- ============ PROJECT 01 ============ -->
-<section class="project" id="project-1">
+<section class="project" id="project-1" aria-labelledby="p1-title">
+  <div class="ghost" aria-hidden="true">01</div>
   <div class="wrap">
     <div class="eyebrow">Project 01</div>
-    <h2>Figure Skating Journey</h2>
+    <h2 id="p1-title">Figure Skating Journey</h2>
     <div class="meta">2018&ndash;2026 &middot; Learner</div>
     <div class="project-layout">
       <div>
         <p class="intro">I chose this project because figure skating has been part of my life for several years. It represents patience, focus, and the kind of progress that only comes from repeating, correcting, and trying again.</p>
-        <div class="facts" style="grid-template-columns: 1fr; gap: 48px; margin-top: 110px;">
+        <div class="facts facts--stack">
           <div>
             <h3>What I Took Away</h3>
             <p>The outcome is more than a skating skill. I became more patient and persistent, and I learned to see improvement as something built over time.</p>
@@ -87,20 +128,27 @@
           </div>
         </div>
       </div>
-      <img class="side-img" src="images/skating.png" alt="Figure skating" />
+      <img class="side-img" src="images/skating.png" alt="Figure skating" loading="lazy" decoding="async" />
     </div>
     <hr class="section-divider" />
   </div>
 </section>
 
 <!-- ============ PROJECT 02 ============ -->
-<section class="project" id="project-2">
+<section class="project" id="project-2" aria-labelledby="p2-title">
+  <div class="ghost" aria-hidden="true">02</div>
   <div class="wrap">
     <div class="eyebrow">Project 02</div>
-    <h2>Stop Motion Animation</h2>
+    <h2 id="p2-title">Stop Motion Animation</h2>
     <div class="meta">2025 &middot; Film Editor</div>
     <p class="intro">This Science PA turned a simple idea into a complete short animation. We built the setting ourselves, used dolls as characters, and photographed the scene step by step before editing everything together.</p>
-    <div class="project-img big-img">STOP MOTION PROJECT IMAGE</div>
+    <div class="project-img big-img">
+      <svg class="ph-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+        <rect x="6" y="10" width="36" height="28" rx="3" />
+        <path d="M14 10v28M34 10v28M6 17h8M6 31h8M34 17h8M34 31h8" />
+      </svg>
+      <span>STOP MOTION PROJECT IMAGE</span>
+    </div>
     <div class="facts">
       <div>
         <h3>My Role</h3>
@@ -120,13 +168,20 @@
 </section>
 
 <!-- ============ PROJECT 03 ============ -->
-<section class="project" id="project-3">
+<section class="project" id="project-3" aria-labelledby="p3-title">
+  <div class="ghost" aria-hidden="true">03</div>
   <div class="wrap">
     <div class="eyebrow">Project 03</div>
-    <h2>Laser Cutting</h2>
+    <h2 id="p3-title">Laser Cutting</h2>
     <div class="meta">Project</div>
     <p class="intro">Add a concise introduction here that explains what the Laser Cutting project was and why it matters to you.</p>
-    <div class="project-img big-img">LASER PROJECT IMAGE</div>
+    <div class="project-img big-img">
+      <svg class="ph-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+        <path d="M24 6l14 8v18L24 42 10 32V14z" />
+        <path d="M24 6v36M10 14l14 8 14-8" />
+      </svg>
+      <span>LASER PROJECT IMAGE</span>
+    </div>
     <div class="facts">
       <div>
         <h3>Your Role</h3>
@@ -149,17 +204,21 @@
   <div class="wrap">
     <hr class="rule" />
     <div class="footer-row">
-      <div class="left">
+      <div class="footer-left">
         <small>Ethan Li &middot; Grade 9 Portfolio</small>
         <div class="footer-desc">A portfolio about practice, progress, and making things.</div>
       </div>
-      <div class="right" style="text-align: right;">
+      <div class="footer-right">
         <small>2026</small>
-        <div class="footer-next">Next &middot; Figure Skating Journey &darr;</div>
+        <div class="footer-next"><a href="help.html" style="color:inherit;text-decoration:none;">Next &middot; I can help you with &rarr;</a></div>
       </div>
     </div>
   </div>
 </footer>
 
+<nav id="rail" aria-label="Sections"></nav>
+
+<script src="js/main.js" defer></script>
+<script src="js/fx.js" defer></script>
 </body>
 </html>
