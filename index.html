@@ -62,6 +62,18 @@
         <div class="avatar-ring"><img src="images/portrait.png" alt="Portrait of Ethan Li" width="440" height="440" /></div>
         <div class="name">ETHAN LI</div>
         <div class="role">Student &middot; Creator &middot; Learner</div>
+
+        <!-- 交互：访客输入名字 → 网页用他的名字打招呼（事件：input / submit） -->
+        <form class="greet" id="greet" autocomplete="off">
+          <label class="greet-label" for="greet-name">Leave your name</label>
+          <div class="greet-row">
+            <input class="greet-input" id="greet-name" name="visitor" type="text"
+                   maxlength="24" placeholder="Your name" aria-describedby="greet-out" />
+            <button class="greet-btn" type="submit">Say hi</button>
+          </div>
+          <p class="greet-out" id="greet-out" role="status" aria-live="polite">Type your name &mdash; I&rsquo;ll say hello.</p>
+        </form>
+
       </aside>
     </div>
     <div class="hero-foot">
@@ -220,5 +232,6 @@
 
 <script src="js/main.js" defer></script>
 <script src="js/fx.js" defer></script>
+<script src="js/greet.js" defer></script>
 </body>
 </html>
