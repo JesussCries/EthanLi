@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Skate Run — Ethan Li</title>
-<meta name="description" content="A small skating game by Ethan Li: pylons drop onto the ice and keep coming faster. Steer left and right, stay on your feet, chase your best distance." />
+<meta name="description" content="A small 3D skating game by Ethan Li: pylons slide up the ice and keep coming faster. Steer left and right, stay on your feet, chase your best distance." />
 <meta name="theme-color" content="#0A0505" />
 <meta name="color-scheme" content="dark" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -46,7 +46,7 @@
         <h1 class="arcade-title" id="arcade-title">SKATE RUN</h1>
       </div>
       <p class="arcade-lead">
-        Pylons drop onto the ice and keep coming faster.<br />
+        Pylons slide up the ice and keep coming faster.<br />
         Steer with <b>&larr;</b> <b>&rarr;</b> &mdash; or drag anywhere on the ice.
         Touch one and the run is over.
       </p>
@@ -54,7 +54,7 @@
 
     <div class="game-shell" id="game-stage">
       <canvas id="game-canvas" role="img"
-              aria-label="An ice rink obstacle game. Pylons slide down the rink; steer the skater left and right to avoid them."></canvas>
+              aria-label="A 3D ice rink obstacle game. Pylons slide toward you down the rink; steer the skater left and right to avoid them."></canvas>
 
       <div class="game-hud" aria-hidden="true">
         <div class="hud-box">
@@ -70,7 +70,7 @@
       <div class="game-overlay" id="game-overlay">
         <div class="overlay-eyebrow" id="game-eyebrow">Rink 02 &middot; Obstacle run</div>
         <h2 class="overlay-title" id="game-title">READY?</h2>
-        <p class="overlay-text" id="game-text">Pylons will drop in. Weave between them and stay on your feet.</p>
+        <p class="overlay-text" id="game-text">Pylons will come at you. Weave between them and stay on your feet.</p>
         <button class="game-btn" type="button" id="game-start">Start skating</button>
         <div class="game-keys">
           <span class="keys-desk"><span class="kbd">&larr;</span><span class="kbd">&rarr;</span> to steer &middot; <span class="kbd">space</span> to start</span>
@@ -107,7 +107,7 @@
 
 <script src="js/main.js" defer></script>
 <script src="js/fx.js" defer></script>
-<script src="js/skater.js" defer></script>
-<script src="js/obstacle.js" defer></script>
+<script src="vendor/three.min.js" defer></script>
+<script src="js/rink3d.js" defer></script>
 </body>
 </html>

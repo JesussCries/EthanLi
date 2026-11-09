@@ -708,6 +708,15 @@ nav a.nav-cta::after { background: var(--accent); }
 }
 .game-shell canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
+/* 3D 画布上面的暗角与边缘压暗：让画面像透过镜头看 */
+.game-shell::after {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    radial-gradient(ellipse 78% 72% at 50% 46%, rgba(0,0,0,0) 40%, rgba(4,2,2,0.55) 100%),
+    linear-gradient(to bottom, rgba(4,2,2,0.42), rgba(0,0,0,0) 20%, rgba(0,0,0,0) 84%, rgba(4,2,2,0.26));
+}
+.game-overlay { z-index: 2; }
+
 .game-hud {
   position: absolute; inset: 18px 22px auto 22px;
   display: flex; justify-content: space-between; pointer-events: none;
@@ -720,11 +729,14 @@ nav a.nav-cta::after { background: var(--accent); }
 .hud-v { color: var(--ink); font-size: 22px; font-weight: 800; letter-spacing: 0.5px; font-variant-numeric: tabular-nums; }
 
 .game-overlay {
-  position: absolute; inset: 0; padding: 28px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
-  text-align: center;
-  background: radial-gradient(ellipse 62% 48% at 50% 44%, rgba(10, 5, 5, 0.86), rgba(10, 5, 5, 0.58));
-  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  position: absolute; inset: 0; padding: 0 52px 44px;
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end;
+  gap: 12px; text-align: left;
+  background: linear-gradient(to top,
+    rgba(8, 4, 4, 0.94) 0%,
+    rgba(8, 4, 4, 0.80) 30%,
+    rgba(8, 4, 4, 0.28) 66%,
+    rgba(8, 4, 4, 0.02) 100%);
 }
 .game-overlay[hidden] { display: none; }
 .overlay-eyebrow { color: var(--accent); font-size: 9px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; }
@@ -779,7 +791,9 @@ nav a.nav-cta::after { background: var(--accent); }
   .game-shell { height: 460px; border-radius: 16px; margin-top: 24px; }
   .game-hud { inset: 14px 14px auto 14px; }
   .hud-v { font-size: 17px; }
-  .overlay-title { font-size: 28px; }
+  .game-overlay { padding: 0 24px 34px; align-items: center; text-align: center; }
+  .overlay-title { font-size: 30px; }
+  .overlay-text { max-width: 300px; }
   .overlay-text { font-size: 13px; line-height: 22px; }
   .keys-desk { display: none; }
   .keys-touch { display: inline; }
