@@ -687,3 +687,104 @@ nav a.nav-cta::after { background: var(--accent); }
   .rink-btn { padding: 9px 14px; font-size: 9px; letter-spacing: 1.6px; }
   .rink-dist { width: 100%; margin-left: 0; font-size: 9px; }
 }
+
+/* ===================================================================
+   Game page — "Skate Run"（躲障碍小游戏）
+   =================================================================== */
+.arcade { padding: 96px 0 90px; }
+.arcade-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 56px; }
+.arcade-title {
+  font-size: 60px; line-height: 68px; font-weight: 800; letter-spacing: 1px; margin-top: 16px;
+  background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.arcade-lead { color: var(--muted); font-size: 14px; line-height: 24px; max-width: 420px; text-align: right; text-wrap: pretty; }
+.arcade-lead b { color: var(--ink); font-weight: 700; }
+
+.game-shell {
+  position: relative; margin-top: 32px; height: min(64vh, 620px);
+  border-radius: 20px; overflow: hidden; border: 1px solid var(--line);
+  background: #0D0708;
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.game-shell canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+.game-hud {
+  position: absolute; inset: 18px 22px auto 22px;
+  display: flex; justify-content: space-between; pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.game-shell:not(.is-running) .game-hud { opacity: 0; }
+.hud-box { display: flex; flex-direction: column; gap: 4px; }
+.hud-box--right { text-align: right; }
+.hud-k { color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; }
+.hud-v { color: var(--ink); font-size: 22px; font-weight: 800; letter-spacing: 0.5px; font-variant-numeric: tabular-nums; }
+
+.game-overlay {
+  position: absolute; inset: 0; padding: 28px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  text-align: center;
+  background: radial-gradient(ellipse 62% 48% at 50% 44%, rgba(10, 5, 5, 0.86), rgba(10, 5, 5, 0.58));
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+}
+.game-overlay[hidden] { display: none; }
+.overlay-eyebrow { color: var(--accent); font-size: 9px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; }
+.overlay-title {
+  font-size: clamp(30px, 5vw, 52px); line-height: 1.05; font-weight: 900; letter-spacing: 1px;
+  text-shadow: 0 2px 24px rgba(10, 5, 5, 0.9);
+}
+.overlay-text {
+  color: var(--muted); font-size: 14px; line-height: 24px; max-width: 430px;
+  text-wrap: pretty; text-shadow: 0 2px 18px rgba(10, 5, 5, 0.9);
+}
+.overlay-text b { color: var(--ink); }
+.game-btn {
+  margin-top: 6px; padding: 14px 30px; border-radius: 999px;
+  border: 1px solid var(--accent); background: transparent; color: var(--accent);
+  font: inherit; font-size: 10px; font-weight: 700; letter-spacing: 2.4px; text-transform: uppercase;
+  cursor: pointer; transition: background 0.25s, color 0.25s, transform 0.25s var(--ease);
+}
+.game-btn:hover { background: var(--accent); color: #0A0505; transform: translateY(-2px); }
+.game-keys { color: var(--muted); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
+.kbd {
+  display: inline-block; min-width: 22px; padding: 3px 6px; margin: 0 1px;
+  border: 1px solid var(--line); border-radius: 5px; color: var(--ink); font-size: 10px;
+}
+.keys-touch { display: none; }
+
+.arcade-foot { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 18px; }
+.arcade-tip { color: var(--muted); font-size: 12px; line-height: 20px; }
+.arcade-back {
+  color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: 1.6px;
+  text-transform: uppercase; text-decoration: none; white-space: nowrap;
+}
+.arcade-back:hover { color: var(--ink); }
+
+/* 首页冰场区块底部的入口 */
+.rink-more {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 14px;
+  color: var(--accent); font-size: 11px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; text-decoration: none;
+}
+.rink-more:hover { color: var(--ink); }
+
+@media (max-width: 1100px) {
+  .arcade-head { flex-direction: column; align-items: flex-start; gap: 20px; }
+  .arcade-lead { text-align: left; max-width: none; }
+  .arcade-title { font-size: 44px; line-height: 52px; }
+  .game-shell { height: min(58vh, 520px); }
+}
+@media (max-width: 640px) {
+  .arcade { padding: 72px 0 60px; }
+  .arcade-title { font-size: 34px; line-height: 42px; }
+  .game-shell { height: 460px; border-radius: 16px; margin-top: 24px; }
+  .game-hud { inset: 14px 14px auto 14px; }
+  .hud-v { font-size: 17px; }
+  .overlay-title { font-size: 28px; }
+  .overlay-text { font-size: 13px; line-height: 22px; }
+  .keys-desk { display: none; }
+  .keys-touch { display: inline; }
+  .arcade-foot { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
+
+/* 页脚右上那两行原本会挤在同一行里 */
+.footer-right small { display: block; }
