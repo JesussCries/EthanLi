@@ -3,9 +3,9 @@
  *
  * 事件：pointerdown 按下（开始画）→ pointermove 拖动（记录点）→ pointerup 松开（出发）
  * 数据：指针经过的坐标。存成 0–1 的相对值，所以窗口缩放后路线不会错位。
- * 规则：把点重新等距采样，再按"已滑过的长度"前进 —— 这样速度才均匀，
- *       不会因为手快的地方点稀疏就跑得快。朝向由相邻两点算出，转弯越急身体越倾斜。
- * 输出：冰面刀痕 + 人物剪影的位置、朝向、倾斜角。
+ * 规则：把点重新等距采样，再按"整条线滑完用多久"推进：起步蹬冰快、临近终点收刃慢，
+ *       所以不会因为手快的地方点稀疏就跑得快。朝向由相邻两点算出，转弯越急压刃越深。
+ * 输出：冰面刀痕 + 人物剪影的位置、朝向、倾斜角 + 冰屑 + 里程。
  * ============================================================ */
 (function () {
   'use strict';
@@ -16,6 +16,7 @@
 
   var ctx = canvas.getContext('2d');
   var hintEl = document.getElementById('rink-hint');
+  var hintTxt = hintEl ? hintEl.querySelector('span') : null;
   var distEl = document.getElementById('rink-dist');
   var demoBtn = document.getElementById('rink-demo');
   var clearBtn = document.getElementById('rink-clear');
@@ -25,14 +26,18 @@
   var bgCanvas = document.createElement('canvas');
 
   var live = [];          // 正在画的点（像素坐标）
-  var traces = [];        // 画完的路线，留作冰面刻痕（相对坐标）
+  var traces = [];        // 画完的路线，留作冰面刻痕（相对坐标 + 缓存的像素坐标）
   var skater = null;      // 正在滑的状态
   var sparks = [];        // 冰屑
   var drawing = false;
+  var rectCache = null;   // 画布位置缓存，pointermove 里不再反复读布局
 
-  var SPEED = 430;        // 滑行速度 px/s
   var STEP = 4;           // 重采样间距 px
   var MIN_LEN = 70;       // 太短的线当误触丢掉
+  var MAX_TRACES = 8;     // 冰面最多留几条旧刻痕
+  var MAX_SPARKS = 150;   // 冰屑上限，防止长时间滑动堆积
+  var BASE_SPEED = 520;   // 用于推算时长：整条线按 520px/s 的节奏滑完
+  var DUR_MIN = 0.75, DUR_MAX = 3.2;
 
   /* ---------- 尺寸 ---------- */
   function fit() {
@@ -43,6 +48,19 @@
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    rectCache = canvas.getBoundingClientRect();
+
+    // 尺寸变了：旧刻痕按相对坐标重新换算像素，正在滑的那条线保留进度
+    for (var i = 0; i < traces.length; i++) traces[i].px = traces[i].norm.map(toPx);
+    if (skater) {
+      var uOld = skater.dur ? Math.min(1, skater.t / skater.dur) : 1;
+      skater.geo = buildGeo(skater.norm);
+      skater.dur = duration(skater.geo.len);
+      skater.t = uOld * skater.dur;
+      skater.d = skater.done ? skater.geo.len : glide(uOld) * skater.geo.len;
+      place(skater);
+    }
+
     paintBg(dpr);
     draw();
   }
@@ -149,6 +167,21 @@
     return d;
   }
 
+  function buildGeo(norm) {
+    var r = resample(norm.map(toPx), STEP);
+    return { pts: r.pts, cum: r.cum, len: r.len };
+  }
+
+  // 整条线滑多久：短的基本一眨眼，长的也留出 3 秒就能看完
+  function duration(len) {
+    return Math.max(DUR_MIN, Math.min(DUR_MAX, len / BASE_SPEED));
+  }
+
+  // 进度曲线：起步快（蹬冰），临近终点收得住（滑行收刃）
+  function glide(u) {
+    return 1 - Math.pow(1 - u, 1.6);
+  }
+
   /* ---------- 绘制 ---------- */
   function strokePts(pts, color, width, glow) {
     if (pts.length < 2) return;
@@ -209,7 +242,7 @@
     ctx.fillStyle = '#FBEEE8';
     ctx.strokeStyle = '#FBEEE8';
     ctx.shadowColor = 'rgba(255,120,90,0.5)';
-    ctx.shadowBlur = 16;
+    ctx.shadowBlur = 14;
 
     // 支撑腿
     shape([[-2, -154], [-10, -86], [-4, -26]], [20, 14, 10]);
@@ -244,34 +277,53 @@
     ctx.restore();
   }
 
+  // 路线顶到画布上沿时，人物按剩余空间收小，宁可小一点也不让头被切掉
+  function fitHeight(y, hBase) {
+    var room = (y - 6) / 0.95;                 // 人物从冰刀往上占 0.95h
+    return Math.max(hBase * 0.45, Math.min(hBase, room));
+  }
+
   function draw() {
     ctx.clearRect(0, 0, W, H);
     ctx.drawImage(bgCanvas, 0, 0, W, H);
 
-    // 历史刀痕
+    // 历史刀痕：越旧越淡，像一层层叠上去的冰面记忆
     for (var i = 0; i < traces.length; i++) {
-      strokePts(traces[i].map(toPx), 'rgba(255,228,218,0.15)', 2);
+      var fade = 0.045 + 0.085 * ((i + 1) / traces.length);
+      strokePts(traces[i].px, 'rgba(255,228,218,' + fade.toFixed(3) + ')', 2);
     }
 
     // 正在画的线
     if (live.length > 1) strokePts(live, 'rgba(255,238,230,0.55)', 2.2, 10);
 
-    var h = Math.max(120, Math.min(215, H * 0.42));
+    var hBase = Math.max(120, Math.min(215, H * 0.42));
+
+    // 起点做个记号，让人一眼看出这条线从哪儿开始
+    var startPts = skater ? skater.geo.pts : null;
+    if (startPts && startPts.length) {
+      ctx.strokeStyle = 'rgba(255,238,230,0.45)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(startPts[0].x, startPts[0].y, 4.5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
 
     if (skater) {
       // 还没滑到的部分：淡
-      strokePts(skater.pts, 'rgba(255,228,218,0.13)', 2.4);
+      strokePts(skater.geo.pts, 'rgba(255,228,218,0.13)', 2.4);
       // 已经滑过的部分：亮 + 发光
       var idx = 0;
-      while (idx < skater.cum.length - 2 && skater.cum[idx + 1] < skater.d) idx++;
-      var done = skater.pts.slice(0, idx + 1);
+      while (idx < skater.geo.cum.length - 2 && skater.geo.cum[idx + 1] < skater.d) idx++;
+      var done = skater.geo.pts.slice(0, idx + 1);
       if (skater.x != null) done.push({ x: skater.x, y: skater.y });
       strokePts(done, 'rgba(255,246,240,0.92)', 2.6, 18);
 
-      if (skater.x != null) drawSkater(skater.x, skater.y, h, skater.lean, skater.dir);
+      if (skater.x != null) {
+        drawSkater(skater.x, skater.y, fitHeight(skater.y, hBase), skater.lean, skater.dir);
+      }
     } else if (!live.length) {
       // 空场时让他站在冰上，别让这块看起来是空的
-      drawSkater(W * 0.5, H * 0.7, h, 0, 1);
+      drawSkater(W * 0.5, H * 0.7, hBase, 0, 1);
     }
 
     // 冰屑
@@ -285,40 +337,73 @@
     }
   }
 
+  /* ---------- 位置与姿态 ---------- */
+  function place(sk) {
+    var p = at(sk.geo.pts, sk.geo.cum, sk.d);
+    sk.x = p.x;
+    sk.y = p.y;
+    sk.dir = Math.cos(p.ang) >= 0 ? 1 : -1;
+
+    // 用前后各 20px 的朝向差判断转弯，转弯越急倾角越大（像压刃）
+    var a1 = at(sk.geo.pts, sk.geo.cum, Math.max(0, sk.d - 20)).ang;
+    var a2 = at(sk.geo.pts, sk.geo.cum, Math.min(sk.geo.len, sk.d + 20)).ang;
+    var target = Math.max(-0.4, Math.min(0.4, angleDiff(a2, a1) * 0.85));
+    sk.leanTarget = target + sk.dir * 0.06;   // 顺着滑行方向再压一点，看起来更"用力"
+  }
+
   /* ---------- 动画 ---------- */
-  var raf = 0, lastTs = 0;
+  var raf = 0, lastTs = 0, sparkAcc = 0, shownM = -1;
+
+  function spawnSparks(n, x, y, dir, spread) {
+    for (var i = 0; i < n && sparks.length < MAX_SPARKS; i++) {
+      var a = (Math.random() - 0.5) * spread;
+      var v = 40 + Math.random() * 130;
+      sparks.push({
+        x: x + (Math.random() - 0.5) * 6,
+        y: y - 3,
+        vx: -dir * Math.cos(a) * v,
+        vy: -Math.abs(Math.sin(a)) * v - 20,
+        r: 0.8 + Math.random() * 1.7,
+        life: 0.4 + Math.random() * 0.45,
+        t: 0
+      });
+    }
+  }
 
   function tick(ts) {
     var dt = lastTs ? Math.min(0.05, (ts - lastTs) / 1000) : 0.016;
     lastTs = ts;
 
     if (skater && !skater.done) {
-      skater.d += SPEED * dt;
-      if (skater.d >= skater.len) { skater.d = skater.len; skater.done = true; }
+      skater.t = Math.min(skater.dur, skater.t + dt);
+      var u = skater.dur ? skater.t / skater.dur : 1;
+      skater.d = glide(u) * skater.geo.len;
+      place(skater);
 
-      var p = at(skater.pts, skater.cum, skater.d);
-      skater.x = p.x;
-      skater.y = p.y;
-      skater.dir = Math.cos(p.ang) >= 0 ? 1 : -1;
+      // 姿态平滑跟随，避免急弯时人物"甩"一下
+      skater.lean += (skater.leanTarget - skater.lean) * Math.min(1, dt * 9);
 
-      // 用前后各 20px 的朝向差判断转弯，转弯越急倾角越大（像压刃）
-      var a1 = at(skater.pts, skater.cum, Math.max(0, skater.d - 20)).ang;
-      var a2 = at(skater.pts, skater.cum, Math.min(skater.len, skater.d + 20)).ang;
-      var turn = angleDiff(a2, a1);
-      var target = Math.max(-0.4, Math.min(0.4, turn * 0.85));
-      skater.lean += (target - skater.lean) * Math.min(1, dt * 9);
+      var m = Math.round(skater.d / 100);
+      if (m !== shownM) {
+        shownM = m;
+        if (distEl) distEl.textContent = (skater.d / 100).toFixed(1) + ' m skated';
+      }
 
-      if (distEl) distEl.textContent = (skater.d / 100).toFixed(1) + ' m skated';
+      // 冰屑按"走过的距离"生成，快慢下密度都一致
+      var v = (skater.dur ? glide(Math.min(1, u + 0.02)) - glide(u) : 0) * skater.geo.len / 0.02;
+      sparkAcc += v * dt;
+      if (v > 120 && sparkAcc > 16) {
+        spawnSparks(1, skater.x, skater.y, skater.dir, 1.1);
+        sparkAcc = 0;
+      }
+      if (sparkAcc > 64) sparkAcc = 0;
 
-      if (skater.d < skater.len && Math.random() < 0.6) {
-        sparks.push({
-          x: p.x, y: p.y - 3,
-          vx: -skater.dir * (30 + Math.random() * 90),
-          vy: -(20 + Math.random() * 80),
-          r: 0.8 + Math.random() * 1.7,
-          life: 0.45 + Math.random() * 0.45,
-          t: 0
-        });
+      if (u >= 1) {
+        skater.done = true;
+        skater.d = skater.geo.len;
+        place(skater);
+        skater.leanTarget = 0;
+        spawnSparks(16, skater.x, skater.y, skater.dir, 2.2);   // 收刃那一下的雪雾
       }
     }
 
@@ -326,7 +411,7 @@
       var sp = sparks[i];
       sp.t += dt;
       if (sp.t >= sp.life) { sparks.splice(i, 1); continue; }
-      sp.vy += 280 * dt;
+      sp.vy += 300 * dt;
       sp.x += sp.vx * dt;
       sp.y += sp.vy * dt;
     }
@@ -348,39 +433,52 @@
   }
 
   /* ---------- 出发 ---------- */
+  function pushTrace(norm) {
+    traces.push({ norm: norm, px: norm.map(toPx) });
+    if (traces.length > MAX_TRACES) traces.shift();
+  }
+
+  var hintTimer = 0;
+
   function finalize(rawPx) {
     if (rawPx.length < 2) return;
-    var r = resample(rawPx, STEP);
-    if (r.len < MIN_LEN) return;
-
-    if (skater) traces.push(skater.norm);
-    if (traces.length > 8) traces.shift();
-
-    var norm = r.pts.map(function (p) { return { x: p.x / W, y: p.y / H }; });
+    var norm = rawPx.map(function (p) { return { x: p.x / W, y: p.y / H }; });
+    var geo = buildGeo(norm);
+    if (geo.len < MIN_LEN) {
+      // 线太短，当误触：给一句话提示，过一会儿再恢复默认文案
+      if (hintEl) hintEl.classList.remove('is-gone');
+      if (hintTxt) hintTxt.textContent = 'Drag a longer line';
+      clearTimeout(hintTimer);
+      hintTimer = setTimeout(function () {
+        if (hintTxt) hintTxt.textContent = 'Drag to draw';
+      }, 1800);
+      return;
+    }
 
     skater = {
       norm: norm,
-      pts: r.pts,
-      cum: r.cum,
-      len: r.len,
+      geo: geo,
       d: 0,
+      t: 0,
+      dur: duration(geo.len),
       lean: 0,
+      leanTarget: 0,
       dir: 1,
       done: false,
       x: null,
       y: null
     };
+    place(skater);
 
-    if (distEl) distEl.textContent = '0 m skated';
+    shownM = 0;
+    if (distEl) distEl.textContent = '0.0 m skated';
 
     if (reduce) {                      // 关掉动画就直接呈现终点
-      var end = at(r.pts, r.cum, r.len);
-      skater.d = r.len;
+      skater.d = geo.len;
       skater.done = true;
-      skater.x = end.x;
-      skater.y = end.y;
-      skater.dir = Math.cos(end.ang) >= 0 ? 1 : -1;
-      if (distEl) distEl.textContent = (r.len / 100).toFixed(1) + ' m skated';
+      place(skater);
+      skater.lean = 0;
+      if (distEl) distEl.textContent = (geo.len / 100).toFixed(1) + ' m skated';
       draw();
       return;
     }
@@ -389,17 +487,24 @@
 
   /* ---------- 指针事件 ---------- */
   function local(e) {
-    var r = canvas.getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top };
+    var r = rectCache || canvas.getBoundingClientRect();
+    return {
+      x: Math.max(1, Math.min(W - 1, e.clientX - r.left)),
+      y: Math.max(1, Math.min(H - 1, e.clientY - r.top))
+    };
   }
 
   canvas.addEventListener('pointerdown', function (e) {
     if (e.button != null && e.button !== 0) return;
     e.preventDefault();
+    rectCache = canvas.getBoundingClientRect();
+    // 上一条滑完的线 → 变成冰面刻痕
+    if (skater && skater.norm) pushTrace(skater.norm);
     drawing = true;
     live = [local(e)];
     skater = null;
     sparks.length = 0;
+    sparkAcc = 0;
     if (hintEl) hintEl.classList.add('is-gone');
     stage.classList.add('is-drawing');
     if (canvas.setPointerCapture) {
@@ -451,8 +556,10 @@
   if (demoBtn) {
     demoBtn.addEventListener('click', function () {
       if (drawing) return;
+      if (skater && skater.norm) pushTrace(skater.norm);
       live = [];
       sparks.length = 0;
+      sparkAcc = 0;
       if (hintEl) hintEl.classList.add('is-gone');
       finalize(demoPath().map(toPx));
     });
@@ -464,8 +571,11 @@
       traces = [];
       skater = null;
       sparks.length = 0;
-      if (distEl) distEl.textContent = '0 m skated';
+      sparkAcc = 0;
+      shownM = -1;
+      if (distEl) distEl.textContent = '0.0 m skated';
       if (hintEl) hintEl.classList.remove('is-gone');
+      if (hintTxt) hintTxt.textContent = 'Drag to draw';
       draw();
     });
   }
@@ -481,6 +591,7 @@
   } else {
     window.addEventListener('resize', scheduleFit);
   }
+  window.addEventListener('orientationchange', scheduleFit);
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', fit);
