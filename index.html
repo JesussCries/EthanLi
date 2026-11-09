@@ -56,7 +56,7 @@
         <p class="tagline">Grade 9 student, figure skater, and creative learner.</p>
         <p class="sub">I enjoy learning through practice and creating projects that let me explore new ideas.</p>
         <a class="hero-cta" href="help.html">I can help you with <span aria-hidden="true">&rarr;</span></a>
-        <div class="scroll-hint">Scroll down to explore my work</div>
+        <div class="scroll-hint">Scroll down to explore my work &middot; <a href="#skate">play the rink game</a></div>
       </div>
       <aside class="hero-card">
         <div class="avatar-ring"><img src="images/portrait.png" alt="Portrait of Ethan Li" width="440" height="440" /></div>
@@ -94,6 +94,42 @@
     <span>Practice</span><i>✦</i><span class="ghost-txt">Progress</span><i>✦</i>
   </div>
 </div>
+
+<!-- ============ 冰场小游戏：画一条线，人物沿着它滑 ============ -->
+<section class="rink" id="skate" aria-labelledby="rink-title">
+  <div class="wrap">
+    <div class="rink-head">
+      <div>
+        <div class="eyebrow">Play &middot; Ice Rink</div>
+        <h2 id="rink-title">DRAW A LINE.<br />I&rsquo;LL SKATE IT.</h2>
+      </div>
+      <p class="rink-note">
+        Press and drag across the ice to leave a trace.<br />
+        Let go &mdash; I&rsquo;ll follow your line, blade first.
+      </p>
+    </div>
+
+    <div class="rink-stage" id="rink-stage">
+      <canvas id="rink-canvas" role="img"
+              aria-label="An ice rink you can draw on. Drag to draw a line, then watch the skater glide along it."></canvas>
+
+      <div class="rink-plate" aria-hidden="true">Rink 01 &middot; Free skate</div>
+
+      <div class="rink-hint" id="rink-hint" aria-hidden="true">
+        <svg viewBox="0 0 28 28"><path d="M5 22C11 20 14 16 14 10V7M14 4.5h5.5m-1.5 0 2 2.5-2 2.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Drag to draw</span>
+      </div>
+
+      <div class="rink-hud">
+        <button class="rink-btn" type="button" id="rink-demo">Try a demo line</button>
+        <button class="rink-btn rink-btn--ghost" type="button" id="rink-clear">Clear</button>
+        <span class="rink-dist" id="rink-dist">0 m skated</span>
+      </div>
+    </div>
+
+    <p class="rink-tip">Any shape works &mdash; loops, spirals, zig-zags. Pull the line back on itself and I&rsquo;ll trace it twice.</p>
+  </div>
+</section>
 
 <!-- ============ ABOUT ============ -->
 <section class="about" id="about" aria-labelledby="about-title">
@@ -233,5 +269,6 @@
 <script src="js/main.js" defer></script>
 <script src="js/fx.js" defer></script>
 <script src="js/greet.js" defer></script>
+<script src="js/skate.js" defer></script>
 </body>
 </html>
