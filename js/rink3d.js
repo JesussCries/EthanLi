@@ -19,7 +19,10 @@
   var canvas = document.getElementById('game-canvas');
   if (!stage || !canvas) return;
 
-  /* ---------- 没有 WebGL 就退回 2D 版 ---------- */
+  /* ---------- 没有 WebGL / 3D 出问题时，退回 2D 版 ---------- */
+  var dead = false;          // 一旦为 true，3D 的所有环节立即停手
+  var fallbackDone = false;  // 保证只降级一次
+
   function loadScript(src, cb) {
     var s = document.createElement('script');
     s.src = src;
@@ -27,9 +30,34 @@
     if (cb) s.onload = cb;
     document.body.appendChild(s);
   }
+
+  /* 把发生的事情写到 console、标签页标题，并在画面上留一行可见提示，
+     这样就算问题只出现在某台电脑上，截图也能直接看到原因 */
+  function reportProblem(msg) {
+    try { console.error('[rink3d] ' + msg); } catch (e2) {}
+    try { document.title = 'Skate Run — 3D issue → 2D fallback'; } catch (e2) {}
+    try {
+      var note = document.createElement('div');
+      note.textContent = '3D renderer problem (' + msg + ') — showing the 2D version instead.';
+      note.style.cssText = 'position:absolute;top:10px;left:12px;z-index:3;font:600 11px/1.4 Inter,Arial,sans-serif;' +
+        'color:#ffb491;background:rgba(10,5,5,0.72);padding:5px 10px;border-radius:6px;letter-spacing:.3px;';
+      stage.appendChild(note);
+    } catch (e2) {}
+  }
+
   function fallback2D() {
+    if (fallbackDone) return;
+    fallbackDone = true;
+    dead = true;
+    // 旧 canvas 可能已经挂了 WebGL 上下文（一个 canvas 不能同时要 2d 和 webgl），
+    // 所以先换一个干净的替身，再让 2D 版接管
+    try {
+      var fresh = canvas.cloneNode(false);
+      if (canvas.parentNode) canvas.parentNode.replaceChild(fresh, canvas);
+    } catch (e2) {}
     loadScript('js/skater.js', function () { loadScript('js/obstacle.js'); });
   }
+
   var hasGL = (function () {
     if (!window.THREE) return false;
     try {
@@ -37,7 +65,17 @@
       return !!(c.getContext('webgl2') || c.getContext('webgl'));
     } catch (e) { return false; }
   })();
-  if (!hasGL) { fallback2D(); return; }
+  if (!hasGL) { reportProblem('WebGL unavailable'); fallback2D(); return; }
+
+  /* 下面这一大段 3D 初始化 + 主循环整体包进 try/catch：
+     任何一台电脑上初始化抛错，都自动退回 2D 版，而不是留下一块坏画布 */
+  try { main3D(); } catch (err) {
+    reportProblem('init: ' + ((err && err.message) || err));
+    fallback2D();
+  }
+  return;
+
+  function main3D() {
 
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -62,13 +100,20 @@
   var ICE_HALF = 7.0;        // 冰面半宽（世界单位），随屏幕比例自适应
   var CAM = { z: 5.0, y: 1.82, fov: 64 };
 
-  renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+  renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
   renderer.setPixelRatio(DPR);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.35;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  /* 显卡驱动出问题导致 WebGL 上下文丢失时，不要留下黑屏/花屏，直接退 2D */
+  canvas.addEventListener('webglcontextlost', function (e) {
+    e.preventDefault();
+    reportProblem('WebGL context lost');
+    fallback2D();
+  });
 
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0a0505);
@@ -771,6 +816,7 @@
   var player = { x: 0, vx: 0, tx: null, lean: 0, tilt: 0 };
   var dist = 0, speed = 0, spawnIn = 0, elapsed = 0;
   var shake = 0, fallT = 0, idleBlend = 1;
+  var sanityDone = false, sanityFrames = 0;
   var shownM = -1;
   var pointerDown = false;
   var keys = { left: false, right: false };
@@ -1072,6 +1118,37 @@
 
     placeCamera(dt);
     renderer.render(scene, camera);
+
+    /* 画面自检：开画约一秒后把当前帧缩成小图采样一次，
+       如果整幅画面几乎是一个纯色（方差≈0），说明这台机器的 WebGL
+       在画但画得不对（驱动/着色器问题），自动退回 2D 版 */
+    if (!sanityDone) {
+      sanityFrames++;
+      if (sanityFrames > 45) { sanityDone = true; sanityCheck(); }
+    }
+  }
+
+  function sanityCheck() {
+    if (dead) return;
+    try {
+      var sc = document.createElement('canvas');
+      sc.width = 48; sc.height = 32;
+      var sg = sc.getContext('2d');
+      if (!sg) return;
+      sg.drawImage(canvas, 0, 0, 48, 32);
+      var d = sg.getImageData(0, 0, 48, 32).data;
+      var n = 48 * 32, sum = 0, sum2 = 0;
+      for (var i = 0; i < n; i++) {
+        var lum = d[i * 4] * 0.299 + d[i * 4 + 1] * 0.587 + d[i * 4 + 2] * 0.114;
+        sum += lum; sum2 += lum * lum;
+      }
+      var mean = sum / n;
+      var std = Math.sqrt(Math.max(0, sum2 / n - mean * mean));
+      if (isNaN(std) || std < 3.5) {
+        reportProblem('frame is uniform (std=' + std.toFixed(1) + ')');
+        fallback2D();
+      }
+    } catch (e) { /* 采样失败不打扰游戏 */ }
   }
 
   /* ============================================================
@@ -1086,6 +1163,7 @@
   var lastIdleTs = 0;
 
   function loop(ts) {
+    if (dead) return;   // 已退回 2D 版：3D 循环立即停手，别再碰旧画布
     var dt = lastTs ? Math.min(0.05, (ts - lastTs) / 1000) : 0.016;
     lastTs = ts;
 
@@ -1203,6 +1281,7 @@
    *  尺寸
    * ============================================================ */
   function fit() {
+    if (dead) return;
     var r = stage.getBoundingClientRect();
     W = Math.max(1, r.width);
     H = Math.max(1, r.height);
@@ -1297,4 +1376,5 @@
       }
     };
   }
+  }  /* ---- end of main3D (整体包在 try/catch 里) ---- */
 })();
