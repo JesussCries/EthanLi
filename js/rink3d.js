@@ -726,12 +726,97 @@
     return g;
   }
 
-  function spawnCone(x, z) {
+  /* ---------- 障碍物多样化：矮栏 / 雪堆 / 会横移的旗锥 ---------- */
+
+  // 矮栏：训练用跨栏，白栏 + 珊瑚色条，横着占半边冰面，只能从另一侧绕
+  var hurdleBarGeo = new THREE.BoxGeometry(2.7, 0.15, 0.10);
+  var hurdleStripeGeo = new THREE.BoxGeometry(2.7, 0.055, 0.11);
+  var hurdlePostGeo = new THREE.BoxGeometry(0.10, 0.52, 0.10);
+  var hurdleBarMat = new THREE.MeshStandardMaterial({ color: 0xf2e9e0, roughness: 0.55, metalness: 0.04 });
+  var hurdleStripeMat = new THREE.MeshStandardMaterial({
+    color: 0xff6a5c, roughness: 0.5, metalness: 0.04, emissive: 0x4a140e, emissiveIntensity: 1.0
+  });
+  var hurdlePostMat = new THREE.MeshStandardMaterial({ color: 0x3a2420, roughness: 0.5, metalness: 0.2 });
+
+  function makeHurdle() {
+    var g = new THREE.Group();
+    var bar = new THREE.Mesh(hurdleBarGeo, hurdleBarMat);
+    bar.position.y = 0.44;
+    bar.castShadow = true;
+    g.add(bar);
+    var stripe = new THREE.Mesh(hurdleStripeGeo, hurdleStripeMat);
+    stripe.position.y = 0.44;
+    g.add(stripe);
+    [-1, 1].forEach(function (s) {
+      var post = new THREE.Mesh(hurdlePostGeo, hurdlePostMat);
+      post.position.set(s * 1.22, 0.26, 0);
+      post.castShadow = true;
+      g.add(post);
+    });
+    var halo = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: texGlow, color: 0xffb491, transparent: true, opacity: 0.22,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    }));
+    halo.position.y = 0.5;
+    halo.scale.set(3.0, 1.2, 1);
+    g.add(halo);
+    return g;
+  }
+
+  // 雪堆：扫冰时扫出来的小雪丘，又矮又圆，比锥子宽一点
+  var snowGeo = new THREE.SphereGeometry(0.62, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+  var snowMat = new THREE.MeshStandardMaterial({ color: 0xe8eef2, roughness: 0.85, metalness: 0.0 });
+
+  function makeSnow() {
+    var g = new THREE.Group();
+    var mound = new THREE.Mesh(snowGeo, snowMat);
+    mound.scale.set(1.0, 0.72, 0.82);
+    mound.position.y = 0.01;
+    mound.castShadow = true;
+    mound.receiveShadow = true;
+    g.add(mound);
+    // 顶部一小撮亮面，让它看起来像被灯照着
+    var tip = new THREE.Mesh(snowGeo, snowMat);
+    tip.scale.set(0.45, 0.5, 0.36);
+    tip.position.set(0.16, 0.42, -0.08);
+    g.add(tip);
+    return g;
+  }
+
+  // 旗锥：锥子上插一面小旗，而且会左右横移
+  var flagGeo = new THREE.PlaneGeometry(0.34, 0.20);
+  var flagMat = new THREE.MeshBasicMaterial({
+    color: 0xff6a5c, transparent: true, opacity: 0.95, side: THREE.DoubleSide
+  });
+  var flagPoleGeo = new THREE.CylinderGeometry(0.016, 0.016, 0.42, 8);
+  var flagPoleMat = new THREE.MeshStandardMaterial({ color: 0xd8cfc8, roughness: 0.4, metalness: 0.4 });
+
+  function makeDrifter() {
     var g = makeCone();
+    var pole = new THREE.Mesh(flagPoleGeo, flagPoleMat);
+    pole.position.y = 1.02;
+    g.add(pole);
+    var flag = new THREE.Mesh(flagGeo, flagMat);
+    flag.position.set(0.18, 1.14, 0);
+    g.add(flag);
+    return g;
+  }
+
+  function spawnObstacle(type, x, z, extra) {
+    var g, halfW, halfD;
+    if (type === 'hurdle') { g = makeHurdle(); halfW = 1.35; halfD = 0.42; }
+    else if (type === 'snow') { g = makeSnow(); halfW = 0.52; halfD = 0.80; }
+    else if (type === 'drift') { g = makeDrifter(); halfW = 0.30; halfD = 0.62; }
+    else { g = makeCone(); halfW = 0.30; halfD = 0.62; }
     g.position.set(x, 0, z);
     scene.add(g);
-    cones.push({ g: g, x: x, z: z });
+    var item = { g: g, x: x, z: z, type: type, halfW: halfW, halfD: halfD };
+    if (extra) for (var k in extra) item[k] = extra[k];
+    cones.push(item);
+    return item;
   }
+
+  function spawnCone(x, z) { return spawnObstacle('cone', x, z); }
 
   /* ============================================================
    *  雪花 / 冰屑
@@ -820,6 +905,7 @@
   var shownM = -1;
   var pointerDown = false;
   var keys = { left: false, right: false };
+  var lastHit = 'cone';
 
   function maxV() { return Math.max(7.2, ICE_HALF * 1.25); }
   function accel() { return maxV() * 4.6; }
@@ -851,12 +937,20 @@
     ensureLoop();
   }
 
-  function crash() {
+  function crash(hitType) {
     state = 'fall';
     fallT = 0;
+    lastHit = hitType || 'cone';
     shake = reduce ? 0 : 0.42;
     sprayAt(player.x, 0.35, 0.15, 34, 1.6);
   }
+
+  // 结算文案按撞到的东西变化
+  var HIT_LABEL = {
+    cone: 'A pylon', gate: 'A pylon', triple: 'A pylon',
+    hurdle: 'The hurdle', drift: 'A drifting pylon', snow: 'A snowbank'
+  };
+  function hitLabel() { return HIT_LABEL[lastHit] || 'A pylon'; }
 
   function showOver() {
     state = 'over';
@@ -871,8 +965,8 @@
     elEyebrow.textContent = 'Rink 02 · Run over';
     elTitle.textContent = 'DOWN YOU GO';
     elText.innerHTML = wasBest && m > 0
-      ? 'A pylon caught you at <b>' + m + ' m</b> — that is your best run so far.'
-      : 'A pylon caught you at <b>' + m + ' m</b>. Best is ' + best + ' m.';
+      ? hitLabel() + ' caught you at <b>' + m + ' m</b> — that is your best run so far.'
+      : hitLabel() + ' caught you at <b>' + m + ' m</b>. Best is ' + best + ' m.';
     elStart.textContent = 'Skate again';
     overlay.hidden = false;
     stage.classList.remove('is-running');
@@ -919,6 +1013,12 @@
     for (var i = cones.length - 1; i >= 0; i--) {
       var c = cones[i];
       c.z += speed * dt;
+      if (c.swayAmp) {
+        c.phase += c.swaySpd * dt;
+        c.x = c.baseX + Math.sin(c.phase) * c.swayAmp;
+        c.g.position.x = c.x;
+        c.g.rotation.y = -Math.cos(c.phase) * 0.3;
+      }
       c.g.position.z = c.z;
       if (c.z > 2.4) { scene.remove(c.g); cones.splice(i, 1); continue; }
       c.g.visible = c.z > -46;
@@ -949,25 +1049,71 @@
     return t * (0.85 + Math.random() * 0.32);
   }
 
-  function spawn() {
+  /* ---------- 各类型障碍物的默认摆位 ---------- */
+  function spawnGate(z) {
     var lim = zLimit();
-    // 偶尔来一组"门"：两个锥子中间留一条缝，逼你选边
-    if (Math.random() < 0.26 && ICE_HALF > 4.2) {
-      var gap = Math.max(2.0, ICE_HALF * 0.42);
-      var gx = -lim + Math.random() * Math.max(0.1, (lim * 2 - gap));
-      spawnCone(gx, -44);
-      spawnCone(gx + gap, -44);
-      return;
+    var gap = Math.max(2.0, ICE_HALF * 0.42);
+    var gx = -lim + Math.random() * Math.max(0.1, (lim * 2 - gap));
+    spawnCone(gx, z || -44);
+    spawnCone(gx + gap, z || -44);
+  }
+
+  function spawnTriple(z) {
+    var lim = zLimit();
+    var n = 3, span = Math.min(2.2, lim * 0.75);
+    var sx = -lim * 0.75 + Math.random() * (lim * 1.5 - span);
+    var z0 = z || -44;
+    for (var t = 0; t < n; t++) {
+      spawnCone(sx + (t / (n - 1)) * span, z0 - t * 1.6);
     }
+  }
+
+  function spawnHurdle(z, x) {
+    var lim = zLimit();
+    var side = Math.random() < 0.5 ? -1 : 1;
+    spawnObstacle('hurdle', x != null ? x : side * (lim - 1.35 - 0.45), z || -44);
+  }
+
+  function spawnDrift(z, x) {
+    var lim = zLimit();
+    var amp = Math.min(1.7, lim * 0.42);
+    var bx = x != null ? x : (Math.random() * 2 - 1) * Math.max(0.1, lim - amp - 0.5);
+    spawnObstacle('drift', bx, z || -44, {
+      baseX: bx, swayAmp: amp, swaySpd: 1.8 + Math.random() * 1.4, phase: Math.random() * Math.PI * 2
+    });
+  }
+
+  function spawnSnow(z, x) {
+    var lim = zLimit();
+    var side = Math.random() < 0.5 ? -1 : 1;
+    spawnObstacle('snow', x != null ? x : side * (lim - 0.75), z || -44);
+  }
+
+  function spawnSingle() {
+    var lim = zLimit();
     spawnCone(-lim + Math.random() * lim * 2, -44);
   }
 
+  function spawn() {
+    var meters = dist * 0.5;
+    var r = Math.random();
+
+    /* 按滑行距离逐步解锁：
+       锥子/双锥门(一开始) → 斜排三连(75m) → 矮栏(130m) → 横移旗锥(190m) → 雪堆(250m) */
+
+    if (r < 0.20 && ICE_HALF > 4.2) return spawnGate();
+    if (r < 0.34 && meters > 75 && ICE_HALF > 4.2) return spawnTriple();
+    if (r < 0.50 && meters > 130) return spawnHurdle();
+    if (r < 0.64 && meters > 190) return spawnDrift();
+    if (r < 0.74 && meters > 250) return spawnSnow();
+    return spawnSingle();
+  }
+
   function checkHit() {
-    var halfW = 0.30;
     for (var i = 0; i < cones.length; i++) {
       var c = cones[i];
-      if (Math.abs(c.z - 0.12) > 0.62) continue;
-      if (Math.abs(c.x - player.x) < halfW + 0.30) { crash(); return; }
+      if (Math.abs(c.z - 0.12) > (c.halfD || 0.62) + 0.20) continue;
+      if (Math.abs(c.x - player.x) < c.halfW + 0.30) { crash(c.type); return; }
     }
   }
 
@@ -1357,6 +1503,17 @@
         return 'state=' + state + ' fallT=' + fallT.toFixed(2);
       },
       over: function () { showOver(); render(0.016); return 'over'; },
+      freeze: function () { state = 'idle'; idleBlend = 0; render(0.016); return 'frozen'; },
+      obs: function (type, x, z) {
+        if (type === 'hurdle') spawnHurdle(z, x);
+        else if (type === 'drift') spawnDrift(z, x);
+        else if (type === 'snow') spawnSnow(z, x);
+        else if (type === 'gate') spawnGate(z);
+        else if (type === 'triple') spawnTriple(z);
+        else spawnCone(x != null ? x : 0, z != null ? z : -20);
+        render(0.016);
+        return 'cones=' + cones.length;
+      },
       hide: function (what) {
         if (what === 'pools') pools.forEach(function (p) { p.visible = false; });
         if (what === 'spots') spots.forEach(function (p) { p.visible = false; });
