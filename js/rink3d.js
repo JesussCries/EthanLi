@@ -898,18 +898,37 @@
    *  游戏状态
    * ============================================================ */
   var state = 'idle';           // idle | run | fall | over
-  var player = { x: 0, vx: 0, tx: null, lean: 0, tilt: 0 };
+  var player = { x: 0, vx: 0, tx: null, lean: 0, tilt: 0,
+                 jy: 0, jvy: 0, spin: 0, spinVel: 0, spinsDone: 0 };
   var dist = 0, speed = 0, spawnIn = 0, elapsed = 0;
   var shake = 0, fallT = 0, idleBlend = 1;
   var sanityDone = false, sanityFrames = 0;
   var shownM = -1;
   var pointerDown = false;
-  var keys = { left: false, right: false };
+  var keys = { left: false, right: false, down: false };
   var lastHit = 'cone';
 
   function maxV() { return Math.max(7.2, ICE_HALF * 1.25); }
   function accel() { return maxV() * 4.6; }
   function zLimit() { return ICE_HALF - 0.55; }
+
+  /* ---------- 跳跃与空中旋转 ----------
+     Space / ↑ / W 起跳；空中按住 ← 或 → 会旋转；
+     空中按 ↓ 快速下落；落地转满一圈有更大的雪雾。
+     跳跃可以越过锥子 / 雪堆 / 旗锥，矮栏要跳到最高点附近才过得去。 */
+  var JUMP_V = 4.9, GRAVITY = 10.4;
+  function doJump() {
+    if (state !== 'run' || player.jy > 0.01) return;
+    player.jvy = JUMP_V;
+    player.spin = 0; player.spinVel = 0; player.spinsDone = 0;
+    sprayAt(player.x, 0.05, 0.1, 6, 0.9);            // 起跳蹬冰的雪
+  }
+
+  function hockeyStop() {
+    if (state !== 'run' || player.jy > 0.01) return;
+    player.vx *= 0.42;
+    sprayAt(player.x, 0.05, 0.12, 12, 1.05);
+  }
 
   function resetRun() {
     cones.forEach(function (c) { scene.remove(c.g); });
@@ -923,8 +942,11 @@
     trailTimer = 0;
     player.x = 0; player.vx = 0; player.tx = null;
     player.lean = 0; player.tilt = 0;
+    player.jy = 0; player.jvy = 0; player.spin = 0; player.spinVel = 0; player.spinsDone = 0;
     SK.root.position.set(0, 0, 0);
+    SK.root.rotation.set(0, 0, 0);
     SK.lean.rotation.set(0, 0, 0);
+    contact.scale.set(1, 1, 1);
   }
 
   function start() {
@@ -1003,6 +1025,28 @@
     if (player.x < -lim) { player.x = -lim; player.vx = Math.abs(player.vx) * 0.12; }
     if (player.x > lim) { player.x = lim; player.vx = -Math.abs(player.vx) * 0.12; }
 
+    // 跳跃：抛物线 + 空中旋转 + 俯冲；落地时按转了几圈给不同雪雾
+    if (player.jy > 0 || player.jvy > 0) {
+      player.jvy -= GRAVITY * dt;
+      if (keys.down && player.jvy > -5.5) player.jvy = -5.5;   // ↓ 俯冲速降
+      player.jy += player.jvy * dt;
+      if (player.jy <= 0) {
+        var spins = player.spinsDone;
+        player.jy = 0; player.jvy = 0;
+        sprayAt(player.x, 0.06, 0.05, spins >= 1 ? 20 : 10, 0.55 + spins * 0.35);
+        if (spins >= 1) sprayAt(player.x, 0.28, -0.2, 12, 1.25);
+      } else {
+        var sdir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+        player.spinVel += (sdir * 9.5 - player.spinVel) * Math.min(1, dt * 10);
+        player.spin += player.spinVel * dt;
+        player.spinsDone = Math.floor(Math.abs(player.spin) / (Math.PI * 2));
+      }
+    } else if (player.spin !== 0) {
+      // 落地后旋转快速回正
+      player.spin *= Math.pow(0.0004, dt);
+      if (Math.abs(player.spin) < 0.02) player.spin = 0;
+    }
+
     // 压刃：转向时整体倾斜
     var tiltTarget = Math.max(-1, Math.min(1, player.vx / mv)) * 0.26;
     player.tilt += (tiltTarget - player.tilt) * Math.min(1, dt * 8);
@@ -1024,14 +1068,14 @@
       c.g.visible = c.z > -46;
     }
 
-    // 刀痕与冰屑
+    // 刀痕与冰屑（腾空时冰面上不留痕）
     trailTimer -= dt;
-    if (trailTimer <= 0) { pushTrail(player.x, 0, true); trailTimer = 0.045; }
+    if (trailTimer <= 0) { if (player.jy < 0.05) pushTrail(player.x, 0, true); trailTimer = 0.045; }
     var pushPhase = (elapsed * (1.5 + speed * 0.055)) % 1;
     if (pushPhase < 0.03 && Math.abs(player.vx) > 1.2) {
       sprayAt(player.x - Math.sign(player.vx) * 0.2, 0.05, 0.1, 3, 0.75);
     }
-    if (elapsed % 0.16 < dt) sprayAt(player.x, 0.05, 0.05, 1, 0.35);
+    if (elapsed % 0.16 < dt && player.jy < 0.05) sprayAt(player.x, 0.05, 0.05, 1, 0.35);
 
     updateTrail(dt);
     updateSpray(dt);
@@ -1112,6 +1156,9 @@
   function checkHit() {
     for (var i = 0; i < cones.length; i++) {
       var c = cones[i];
+      // 腾空可越过：锥子/旗锥/雪堆需离地 0.35，矮栏更高，要接近跳的最高点
+      var clear = c.type === 'hurdle' ? 1.0 : 0.35;
+      if (player.jy > clear) continue;
       if (Math.abs(c.z - 0.12) > (c.halfD || 0.62) + 0.20) continue;
       if (Math.abs(c.x - player.x) < c.halfW + 0.30) { crash(c.type); return; }
     }
@@ -1165,6 +1212,23 @@
       arm.sh.rotation.z = arm.sgn * (0.44 + 0.12 * Math.abs(sw));
       arm.el.rotation.x = -0.92 - 0.26 * Math.max(0, sw) * amp;
     }
+
+    // 空中姿态：收腿、张臂、身体前倾；旋转中手臂平展像陀螺（air=0 时是原样）
+    var air = Math.min(1, player.jy / 0.45);
+    var spinning = Math.abs(player.spinVel) > 2;
+    for (var li = 0; li < SK.legs.length; li++) {
+      var lg = SK.legs[li];
+      lg.hip.rotation.x += (-0.85 - lg.hip.rotation.x) * air;
+      lg.knee.rotation.x += (1.25 - lg.knee.rotation.x) * air;
+    }
+    for (var ai = 0; ai < SK.arms.length; ai++) {
+      var am = SK.arms[ai];
+      am.sh.rotation.x += (-0.15 - am.sh.rotation.x) * air;
+      am.sh.rotation.z += (am.sgn * (spinning ? 1.35 : 0.78) - am.sh.rotation.z) * air;
+      am.el.rotation.x += (-0.12 - am.el.rotation.x) * air;
+    }
+    SK.body.rotation.x = air * 0.18;
+    SK.body.position.y += air * 0.05;
   }
 
   function poseFallen(dt) {
@@ -1179,6 +1243,7 @@
     SK.body.position.y = 0;
     SK.body.position.x = 0;
     SK.body.rotation.y = 0;
+    SK.body.rotation.x = 0;
     for (var i = 0; i < SK.legs.length; i++) {
       SK.legs[i].hip.rotation.z = -SK.legs[i].sgn * (0.22 + e * 0.30);
       SK.legs[i].hip.rotation.x = -0.1 - e * 0.25;
@@ -1254,9 +1319,18 @@
     }
     flakeGeo.attributes.position.needsUpdate = true;
 
-    // 人物：位置 / 光池 / 接地阴影
+    // 人物：位置 / 跳跃高度与旋转 / 光池 / 接地阴影
     SK.root.position.x = player.x;
     SK.root.position.z = 0;
+    if (state === 'fall' || state === 'over') {
+      // 摔倒姿态自己控制高度；空中摔倒也落回冰面
+      SK.root.position.y += (0.13 - SK.root.position.y) * Math.min(1, dt * 6);
+    } else {
+      SK.root.position.y = player.jy;
+    }
+    SK.root.rotation.y = player.spin;
+    var airK = 1 / (1 + player.jy * 1.6);
+    contact.scale.set(airK, airK, 1);
     lightPool.position.x += (player.x - lightPool.position.x) * Math.min(1, dt * 9);
     lightPool.position.z = 0.4;
     contact.position.x += (player.x - contact.position.x) * Math.min(1, dt * 12);
@@ -1371,8 +1445,17 @@
     } else if (k === 'ArrowRight' || k === 'd' || k === 'D') {
       keys.right = true;
       if (state === 'run') e.preventDefault();
-    } else if (k === ' ' || k === 'Spacebar' || k === 'Enter') {
-      if (state !== 'run') { e.preventDefault(); start(); }
+    } else if (k === 'ArrowDown' || k === 's' || k === 'S') {
+      keys.down = true;
+      if (state === 'run') {
+        e.preventDefault();
+        if (!e.repeat) hockeyStop();          // 地面上按 ↓：急停甩雪
+      }
+    } else if (k === ' ' || k === 'Spacebar' || k === 'Enter' ||
+               k === 'ArrowUp' || k === 'w' || k === 'W') {
+      e.preventDefault();
+      if (state !== 'run') start();
+      else if (!e.repeat) doJump();
     }
   });
 
@@ -1380,6 +1463,7 @@
     var k = e.key;
     if (k === 'ArrowLeft' || k === 'a' || k === 'A') keys.left = false;
     if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.right = false;
+    if (k === 'ArrowDown' || k === 's' || k === 'S') keys.down = false;
   });
 
   function localX(e) {
@@ -1406,9 +1490,18 @@
 
   if (elStart) elStart.addEventListener('click', start);
 
+  // 触屏跳跃按钮
+  var elJump = document.getElementById('jump-btn');
+  if (elJump) {
+    elJump.addEventListener('pointerdown', function (e) {
+      e.preventDefault();
+      if (state === 'run') doJump();
+    });
+  }
+
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) {
-      keys.left = keys.right = false;
+      keys.left = keys.right = keys.down = false;
       if (state === 'run') {
         state = 'idle';
         resetRun();
@@ -1487,6 +1580,11 @@
   if (/qa=1/.test(location.search)) {
     window.__rink = {
       start: start,
+      jump: function () { doJump(); return 'jumped y=' + player.jy.toFixed(2); },
+      key: function (name, val) {
+        if (name in keys) { keys[name] = !!val; return keys[name] ? name + '=on' : name + '=off'; }
+        return 'no key ' + name;
+      },
       move: function (x) { player.x = x; player.vx = 0; player.tx = null; },
       step: function (sec) {
         var t = 0;
@@ -1529,7 +1627,9 @@
         return 'hid ' + what;
       },
       info: function () {
-        return 'fov=' + camera.fov.toFixed(1) + ' camY=' + camera.position.y.toFixed(2) + ' kids=' + scene.children.length;
+        return 'fov=' + camera.fov.toFixed(1) + ' camY=' + camera.position.y.toFixed(2) +
+               ' kids=' + scene.children.length + ' jy=' + player.jy.toFixed(2) +
+               ' spin=' + player.spin.toFixed(1) + ' turns=' + player.spinsDone;
       }
     };
   }

@@ -47,8 +47,8 @@
       </div>
       <p class="arcade-lead">
         Pylons, hurdles, snowbanks — and some pylons slide sideways.<br />
-        Steer with <b>&larr;</b> <b>&rarr;</b> &mdash; or drag anywhere on the ice.
-        Touch one and the run is over.
+        Steer with <b>&larr;</b> <b>&rarr;</b>, <b>jump</b> with <b>space</b>.
+        Hold an arrow in the air to spin; press <b>&darr;</b> to dive down or stop.
       </p>
     </div>
 
@@ -67,14 +67,17 @@
         </div>
       </div>
 
+      <button class="game-jump" type="button" id="jump-btn" aria-label="Jump">JUMP</button>
+
       <div class="game-overlay" id="game-overlay">
         <div class="overlay-eyebrow" id="game-eyebrow">Rink 02 &middot; Obstacle run</div>
         <h2 class="overlay-title" id="game-title">READY?</h2>
-        <p class="overlay-text" id="game-text">Pylons first. The further you skate, the more the rink throws at you — hurdles, snowbanks, pylons that drift sideways. Weave through and stay on your feet.</p>
+
+        <p class="overlay-text" id="game-text">Pylons first. Jump over what you can't dodge — tap space to leap, hold an arrow in the air to spin, and land clean. The further you skate, the more the rink throws at you.</p>
         <button class="game-btn" type="button" id="game-start">Start skating</button>
         <div class="game-keys">
-          <span class="keys-desk"><span class="kbd">&larr;</span><span class="kbd">&rarr;</span> to steer &middot; <span class="kbd">space</span> to start</span>
-          <span class="keys-touch">Drag on the ice to steer</span>
+          <span class="keys-desk"><span class="kbd">&larr;</span><span class="kbd">&rarr;</span> steer &middot; <span class="kbd">space</span>/<span class="kbd">&uarr;</span> jump &middot; hold <span class="kbd">&larr;</span>/<span class="kbd">&rarr;</span> in the air to spin &middot; <span class="kbd">&darr;</span> dive</span>
+          <span class="keys-touch">Drag on the ice to steer &middot; tap JUMP to leap</span>
         </div>
       </div>
     </div>

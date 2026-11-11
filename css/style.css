@@ -723,6 +723,24 @@ nav a.nav-cta::after { background: var(--accent); }
   transition: opacity 0.3s ease;
 }
 .game-shell:not(.is-running) .game-hud { opacity: 0; }
+
+/* 触屏跳跃按钮：右下角圆形，游戏进行中才出现 */
+.game-jump {
+  position: absolute; right: 20px; bottom: 20px; z-index: 2;
+  width: 68px; height: 68px; border-radius: 50%;
+  border: 1px solid rgba(255, 143, 122, 0.55);
+  background: rgba(200, 54, 43, 0.28);
+  color: var(--ink); font: 800 12px/1 var(--font, Inter, sans-serif);
+  letter-spacing: 2px; cursor: pointer;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  opacity: 0; pointer-events: none; transition: opacity 0.3s ease, transform 0.08s ease;
+}
+.game-jump:active { transform: scale(0.92); background: rgba(200, 54, 43, 0.5); }
+.game-shell.is-running .game-jump { opacity: 0.9; pointer-events: auto; }
+@media (hover: hover) and (pointer: fine) {
+  .game-jump { display: none; }   /* 有鼠标键盘的设备用键盘跳 */
+}
 .hud-box { display: flex; flex-direction: column; gap: 4px; }
 .hud-box--right { text-align: right; }
 .hud-k { color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; }
