@@ -216,7 +216,7 @@
   (function rail() {
     var rail = document.getElementById('rail');
     if (!rail) return;
-    var labels = { home: 'Home', about: 'About', 'project-1': 'Project 01', 'project-2': 'Project 02', 'project-3': 'Project 03', contact: 'Contact' };
+    var labels = { home: 'Home', about: 'About', 'project-1': 'Figure Skating', contact: 'Contact' };
     var secs = document.querySelectorAll('header[id], section[id], footer[id]');
     var links = [];
     secs.forEach(function (sec) {
@@ -251,7 +251,8 @@
       if (sy > 1100) return;
       if (wrap) wrap.style.transform = 'translateY(' + (sy * 0.16).toFixed(1) + 'px)';
       if (copy) {
-        copy.style.opacity = Math.max(0, 1 - sy / 620).toFixed(3);
+        // 淡出放缓：滚过一整屏（1100px）才完全消失，名字卡片不会早早不见
+        copy.style.opacity = Math.max(0, 1 - sy / 1100).toFixed(3);
         copy.style.transform = 'translateY(' + (sy * 0.08).toFixed(1) + 'px)';
       }
     });
